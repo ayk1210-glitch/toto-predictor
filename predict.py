@@ -4,6 +4,7 @@ import argparse
 
 import pandas as pd
 
+from toto.confidence import TIERS, classify
 from toto.data import load
 from toto.model import DixonColes
 from toto.simulate import simulate
@@ -30,14 +31,26 @@ if __name__ == "__main__":
         if not fixtures:
             print("예정된 경기가 없습니다. --match HOME AWAY 로 직접 지정하세요.")
 
+    results = []
     for home, away, odds in fixtures:
         if not (model.knows(home) and model.knows(away)):
             print(f"{home} vs {away}: 학습 데이터에 없는 팀이라 건너뜀")
             continue
-        lam, mu = model.expected_goals(home, away)
         s = simulate(model, home, away, n=args.n)
-        print(f"\n{home} vs {away}  (기대 득점 {lam:.2f} : {mu:.2f}, {args.n:,}회 시뮬레이션)")
-        print(f"  승 {s['home_win']:.1%}  무 {s['draw']:.1%}  패 {s['away_win']:.1%}")
+        probs = [s["home_win"], s["draw"], s["away_win"]]
+        pick = max(range(3), key=probs.__getitem__)
+        results.append((home, away, odds, s, probs, pick, classify(probs[pick])))
+
+    results.sort(key=lambda r: -r[4][r[5]])
+    if results:
+        counts = {t.label: sum(r[6] is t for r in results) for t in TIERS}
+        print(f"{len(results)}경기 예측 ({args.n:,}회 시뮬레이션): " + ", ".join(f"{k} {v}" for k, v in counts.items()))
+
+    for home, away, odds, s, probs, pick, tier in results:
+        pick_label = ["홈 승", "무승부", "원정 승"][pick]
+        lam, mu = model.expected_goals(home, away)
+        print(f"\n[{tier.label}] {home} vs {away}  ->  {pick_label} {probs[pick]:.0%}  (과거 이 등급 적중률 약 {tier.past_hit_rate:.0%})")
+        print(f"  승 {probs[0]:.1%}  무 {probs[1]:.1%}  패 {probs[2]:.1%}   기대 득점 {lam:.2f} : {mu:.2f}")
         print("  많이 나온 스코어: " + ", ".join(f"{sc} ({p:.1%})" for sc, p in s["top_scores"]))
         if odds:
             inv = [1 / o for o in odds]
