@@ -53,3 +53,18 @@ def test_old_matches_count_less():
     m = DixonColes.fit(pd.DataFrame(old + new), as_of=pd.Timestamp("2025-01-02"), half_life_days=90)
     p = m.outcome_probs("X", "Y")
     assert p[2] > p[0]
+
+
+def test_shots_on_target_soften_lucky_finishing():
+    """P는 골을 많이 넣었지만 유효슈팅이 적고, Q는 반대다. 유효슈팅을 섞으면 두 팀 차이가 줄어야 한다."""
+    rows = []
+    for k in range(30):
+        d = pd.Timestamp("2025-01-01") + pd.Timedelta(days=k)
+        rows.append({"date": d, "home": "P", "away": "Q", "hg": 2, "ag": 0, "hst": 3, "ast": 7})
+        rows.append({"date": d, "home": "Q", "away": "P", "hg": 0, "ag": 2, "hst": 7, "ast": 3})
+    df = pd.DataFrame(rows)
+    as_of = pd.Timestamp("2025-03-01")
+    goals_only = DixonColes.fit(df, as_of, goal_weight=1.0)
+    blended = DixonColes.fit(df, as_of, goal_weight=0.5)
+    gap = lambda m: m.attack[m.teams.index("P")] - m.attack[m.teams.index("Q")]
+    assert gap(blended) < gap(goals_only)

@@ -6,7 +6,7 @@ DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 BASE_URL = "https://football-data.co.uk/mmz4281/{season}/{league}.csv"
 
 ODDS_PRIORITY = [("AvgCH", "AvgCD", "AvgCA"), ("PSCH", "PSCD", "PSCA"), ("B365H", "B365D", "B365A")]
-USE_COLS = {"Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG", *(c for cols in ODDS_PRIORITY for c in cols)}
+USE_COLS = {"Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG", "HST", "AST", *(c for cols in ODDS_PRIORITY for c in cols)}
 
 
 def download(league: str, season: str) -> Path:
@@ -37,7 +37,8 @@ def load(league: str, seasons: list[str]) -> pd.DataFrame:
             mask = df["odds_h"].isna()
             df.loc[mask, ["odds_h", "odds_d", "odds_a"]] = df.loc[mask, [h, d, a]].to_numpy()
 
-    out = df[["date", "season", "HomeTeam", "AwayTeam", "FTHG", "FTAG", "odds_h", "odds_d", "odds_a"]]
-    out = out.rename(columns={"HomeTeam": "home", "AwayTeam": "away", "FTHG": "hg", "FTAG": "ag"})
+    out = df[["date", "season", "HomeTeam", "AwayTeam", "FTHG", "FTAG", "HST", "AST", "odds_h", "odds_d", "odds_a"]]
+    out = out.rename(columns={"HomeTeam": "home", "AwayTeam": "away", "FTHG": "hg", "FTAG": "ag",
+                              "HST": "hst", "AST": "ast"})
     out[["hg", "ag"]] = out[["hg", "ag"]].astype(int)
     return out.sort_values("date").reset_index(drop=True)

@@ -12,8 +12,22 @@ python3 -m venv .venv
 .venv/bin/python backtest.py                              # 지난 두 시즌으로 모델 대 마감 배당 비교
 .venv/bin/python predict.py                               # 예정된 경기 예측
 .venv/bin/python predict.py --match Arsenal "Man City"    # 경기 직접 지정
+.venv/bin/python tune.py                                  # 설정 조합별 백테스트 비교
 .venv/bin/python -m pytest -q tests
 ```
+
+## 현재 성능
+
+2025-26 프리미어리그 379경기, 설정을 고를 때 쓰지 않은 시즌 기준. Brier는 낮을수록 좋다.
+
+| | Brier | 적중률 |
+|---|---|---|
+| 골만 쓴 모델 | 0.6198 | 46.2% |
+| 골 + 유효슈팅 (현재 기본값) | 0.6135 | 48.5% |
+| 마감 배당 | 0.6073 | 49.6% |
+
+설정값(반감기 180일, 골 비중 0.5)은 2023-24, 2024-25 시즌 백테스트로 골랐다.
+아직 배당보다 덜 맞으므로 "모델이 배당보다 유리하다"는 신호는 대부분 모델 오차다.
 
 리그 코드: E0 프리미어리그, SP1 라리가, I1 세리에A, D1 분데스리가, F1 리그1 (`--league`로 지정).
 팀 이름은 football-data.co.uk 표기를 따른다(`Man City`, `Nott'm Forest` 등).

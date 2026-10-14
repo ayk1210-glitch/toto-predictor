@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from toto.data import load
-from toto.model import DixonColes
+from toto.model import GOAL_WEIGHT, HALF_LIFE_DAYS, DixonColes
 
 OUTCOMES = ["H", "D", "A"]
 
@@ -22,12 +22,15 @@ def brier(p: np.ndarray, y: int) -> float:
     return float(np.sum((p - target) ** 2))
 
 
-def run(league: str, train_seasons: list[str], test_seasons: list[str], edge: float) -> pd.DataFrame:
+def run(
+    league: str, train_seasons: list[str], test_seasons: list[str], edge: float = 0.05,
+    half_life_days: float = HALF_LIFE_DAYS, goal_weight: float = GOAL_WEIGHT,
+) -> pd.DataFrame:
     df = load(league, train_seasons + test_seasons)
     test = df[df["season"].isin(test_seasons)].dropna(subset=["odds_h"])
     rows = []
     for week_start, week in test.groupby(test["date"].dt.to_period("W").dt.start_time):
-        model = DixonColes.fit(df, as_of=week_start)
+        model = DixonColes.fit(df, as_of=week_start, half_life_days=half_life_days, goal_weight=goal_weight)
         for r in week.itertuples():
             if not (model.knows(r.home) and model.knows(r.away)):
                 continue
@@ -52,12 +55,14 @@ def run(league: str, train_seasons: list[str], test_seasons: list[str], edge: fl
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--league", default="E0")
-    ap.add_argument("--train", nargs="+", default=["2223", "2324"])
+    ap.add_argument("--train", nargs="+", default=["1920", "2021", "2122", "2223", "2324"])
     ap.add_argument("--test", nargs="+", default=["2425", "2526"])
     ap.add_argument("--edge", type=float, default=0.05, help="기대수익이 이 값보다 클 때만 베팅한 것으로 친다")
+    ap.add_argument("--half-life", type=float, default=HALF_LIFE_DAYS)
+    ap.add_argument("--goal-weight", type=float, default=GOAL_WEIGHT)
     args = ap.parse_args()
 
-    res = run(args.league, args.train, args.test, args.edge)
+    res = run(args.league, args.train, args.test, args.edge, args.half_life, args.goal_weight)
     bets = res[res["bet"]]
     print(f"평가 경기 수: {len(res)}")
     print(f"{'':12}{'모델':>10}{'배당':>10}")
