@@ -3,10 +3,12 @@ import numpy as np
 from .model import DixonColes
 
 
-def simulate(model: DixonColes, home: str, away: str, n: int = 10_000, seed: int | None = None) -> dict:
+def simulate(
+    model: DixonColes, home: str, away: str, n: int = 10_000, seed: int | None = None, diff: np.ndarray | None = None
+) -> dict:
     """스코어 분포에서 경기를 n번 뽑아 승/무/패 비율과 많이 나온 스코어를 센다."""
     rng = np.random.default_rng(seed)
-    m = model.score_matrix(home, away)
+    m = model.score_matrix(home, away, diff)
     flat = rng.choice(m.size, size=n, p=m.ravel())
     hg, ag = np.divmod(flat, m.shape[1])
     scores, counts = np.unique(np.stack([hg, ag], axis=1), axis=0, return_counts=True)
